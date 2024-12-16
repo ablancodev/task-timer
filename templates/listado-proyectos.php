@@ -1,8 +1,9 @@
 <?php
-// Fetch projects from the database
+// Fetch projects from the database, que sean mias
 $projects = get_posts(array(
     'post_type' => 'proyecto',
-    'posts_per_page' => -1
+    'posts_per_page' => -1,
+    'author' => get_current_user_id()
 ));
 ?>
 <div class="container mx-auto px-4 py-8">

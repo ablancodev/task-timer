@@ -14,7 +14,20 @@ class TaskTimerManager {
     public function __construct() {
         add_action('init', array($this, 'register_post_types'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        add_action('rest_api_init', array($this, 'register_rest_routes'));
+
+        // llamadas ajax
+        add_action('wp_ajax_guardar_tiempo', array($this, 'guardar_tiempo'));
+        add_action('wp_ajax_no_priv_guardar_tiempo', array($this, 'guardar_tiempo'));
+        add_action('wp_ajax_nueva_tarea', array($this, 'nueva_tarea'));
+        add_action('wp_ajax_no_priv_nueva_tarea', array($this, 'nueva_tarea'));
+        add_action('wp_ajax_nuevo_proyecto', array($this, 'nuevo_proyecto'));
+        add_action('wp_ajax_no_priv_nuevo_proyecto', array($this, 'nuevo_proyecto'));
+        add_action('wp_ajax_eliminar_proyecto', array($this, 'eliminar_proyecto'));
+        add_action('wp_ajax_no_priv_eliminar_proyecto', array($this, 'eliminar_proyecto'));
+        add_action('wp_ajax_eliminar_tarea', array($this, 'eliminar_tarea'));
+        add_action('wp_ajax_no_priv_eliminar_tarea', array($this, 'eliminar_tarea'));
+
+
     }
 
     public function register_post_types() {
@@ -55,56 +68,19 @@ class TaskTimerManager {
         ));
     }
 
-    public function register_rest_routes() {
-        register_rest_route('task-timer/v1', '/guardar-tiempo', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'guardar_tiempo'),
-            'permission_callback' => function () {
-                return true; //is_user_logged_in();
-            }
-        ));
-
-        register_rest_route('task-timer/v1', '/nueva-tarea', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'nueva_tarea'),
-            'permission_callback' => function () {
-                return true; //is_user_logged_in();
-            }
-        ));
-
-        register_rest_route('task-timer/v1', '/nuevo-proyecto', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'nuevo_proyecto'),
-            'permission_callback' => function () {
-                return true;
-            }
-        ));
-
-        register_rest_route('task-timer/v1', '/eliminar-proyecto', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'eliminar_proyecto'),
-            'permission_callback' => function () {
-                return true;
-            }
-        ));
-
-        register_rest_route('task-timer/v1', '/eliminar-tarea', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'eliminar_tarea'),
-            'permission_callback' => function () {
-                return true;
-            }
-        ));
-    }
-
-    public function eliminar_tarea($request) {
-        $params = $request->get_params();
+    public function eliminar_tarea() {
+        $params = $_POST;
         
         //if (!wp_verify_nonce($params['nonce'], 'task-timer-nonce')) {
         //    return new WP_Error('invalid_nonce', 'Nonce inválido', array('status' => 403));
         //}
 
         $tarea_id = intval($params['tarea_id']);
+
+        // si la tarea es mia
+        if (get_current_user_id() != get_post_field('post_author', $tarea_id)) {
+            return new WP_Error('invalid_user', 'No tienes permisos para eliminar esta tarea', array('status' => 403));
+        }
         
         wp_delete_post($tarea_id, true);
         
@@ -114,14 +90,19 @@ class TaskTimerManager {
         );
     }
 
-    public function eliminar_proyecto($request) {
-        $params = $request->get_params();
+    public function eliminar_proyecto() {
+        $params = $_POST;
         
-        //if (!wp_verify_nonce($params['nonce'], 'task-timer-nonce')) {
-        //    return new WP_Error('invalid_nonce', 'Nonce inválido', array('status' => 403));
-        //}
+        if (!wp_verify_nonce($params['nonce'], 'task-timer-nonce')) {
+            return new WP_Error('invalid_nonce', 'Nonce inválido', array('status' => 403));
+        }
 
         $proyecto_id = intval($params['proyecto_id']);
+
+        // si el proyecto es mio
+        if (get_current_user_id() != intval(get_post_field('post_author', $proyecto_id))) {
+            return new WP_Error('invalid_user', 'No tienes permisos para eliminar este proyecto', array('status' => 403));
+        }
         
         $tareas = get_posts(array(
             'post_type' => 'tarea',
@@ -146,8 +127,8 @@ class TaskTimerManager {
         );
     }
 
-    public function nueva_tarea($request) {
-        $params = $request->get_params();
+    public function nueva_tarea() {
+        $params = $_POST;
         
         //if (!wp_verify_nonce($params['nonce'], 'task-timer-nonce')) {
         //    return new WP_Error('invalid_nonce', 'Nonce inválido', array('status' => 403));
@@ -155,11 +136,17 @@ class TaskTimerManager {
 
         $proyecto_id = intval($params['proyecto_id']);
         $titulo = sanitize_text_field($params['titulo']);
+
+        // si el proyecto es mio
+        if (get_current_user_id() != get_post_field('post_author', $proyecto_id)) {
+            return new WP_Error('invalid_user', 'No tienes permisos para añadir tareas a este proyecto', array('status' => 403));
+        }
         
         $tarea_id = wp_insert_post(array(
             'post_title' => $titulo,
             'post_type' => 'tarea',
-            'post_status' => 'publish'
+            'post_status' => 'publish',
+            'post_author' => get_current_user_id()
         ));
         
         update_post_meta($tarea_id, 'proyecto_id', $proyecto_id);
@@ -172,35 +159,41 @@ class TaskTimerManager {
     }
 
     // nuevo proyecto
-    public function nuevo_proyecto($request) {
-        $params = $request->get_params();
+    public function nuevo_proyecto() {
+        $params = $_POST;
         
-        //if (!wp_verify_nonce($params['nonce'], 'task-timer-nonce')) {
-        //    return new WP_Error('invalid_nonce', 'Nonce inválido', array('status' => 403));
-        //}
+        if (!wp_verify_nonce($params['nonce'], 'task-timer-nonce')) {
+            return new WP_Error('invalid_nonce', 'Nonce inválido', array('status' => 403));
+        }
 
         $titulo = sanitize_text_field($params['titulo']);
         
         $proyecto_id = wp_insert_post(array(
             'post_title' => $titulo,
             'post_type' => 'proyecto',
-            'post_status' => 'publish'
+            'post_status' => 'publish',
+            'post_author' => get_current_user_id()
         ));
         
+        // devolvemos la respuetsa del endpoint con http response 200
         return array(
             'success' => true,
             'mensaje' => 'Proyecto creado correctamente',
             'proyecto_id' => $proyecto_id
         );
+
     }
 
-    public function guardar_tiempo($request) {
-        $params = $request->get_params();
-        
-       
+    public function guardar_tiempo() {
+        $params = $_POST;
 
         $tarea_id = intval($params['tarea_id']);
         $tiempo = sanitize_text_field($params['tiempo']);
+
+        // si la tarea es mia
+        if (get_current_user_id() != get_post_field('post_author', $tarea_id)) {
+            return new WP_Error('invalid_user', 'No tienes permisos para guardar tiempo en esta tarea', array('status' => 403));
+        }
         
         update_post_meta($tarea_id, 'tiempo_tarea', $tiempo);
         

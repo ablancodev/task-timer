@@ -60,23 +60,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Función para guardar el tiempo
     function guardarTiempo(tareaId, tiempo) {
-        fetch('../wp-json/task-timer/v1/guardar-tiempo', {
+        fetch(taskTimerObj.ajaxurl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: JSON.stringify({
+            body: new URLSearchParams({
+                action: 'guardar_tiempo',
+                nonce: taskTimerObj.nonce,
                 tarea_id: tareaId,
                 tiempo: tiempo
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                console.error('Error al guardar el tiempo:', data.mensaje);
-            }
-        })
-        .catch(error => console.error('Error:', error));
+        }).then(() => {
+            location.reload();
+        });
     }
 
     // Formulario para nueva tarea
@@ -87,18 +84,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const titulo = document.getElementById('titulo-tarea').value;
             
             // al terminar, que recargue la página de momento
-            fetch('../wp-json/task-timer/v1/nueva-tarea', {
+            fetch(taskTimerObj.ajaxurl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
+                body: new URLSearchParams({
+                    action: 'nueva_tarea',
+                    nonce: taskTimerObj.nonce,
                     titulo: titulo,
                     proyecto_id: document.getElementById('proyecto-id').value
                 })
             }).then(() => {
                 location.reload();
-            });          
+            });        
         });
     }
 
@@ -109,17 +108,19 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const titulo = document.getElementById('titulo-proyecto').value;
             
-            fetch('../wp-json/task-timer/v1/nuevo-proyecto', {
+            fetch(taskTimerObj.ajaxurl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
+                body: new URLSearchParams({
+                    action: 'nuevo_proyecto',
+                    nonce: taskTimerObj.nonce,
                     titulo: titulo
                 })
             }).then(() => {
                 location.reload();
-            })
+            });
         });
     }
 
@@ -131,17 +132,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if ( !confirm('¿Estás seguro de que quieres eliminar este proyecto?') ) {
                 return;
             }
-            fetch(`../wp-json/task-timer/v1/eliminar-proyecto/`, {
+            fetch(taskTimerObj.ajaxurl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
+                body: new URLSearchParams({
+                    action: 'eliminar_proyecto',
+                    nonce: taskTimerObj.nonce,
                     proyecto_id: proyectoId
                 })
             }).then(() => {
                 location.reload();
             });
+            
         });
     });
 
@@ -153,12 +157,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if ( !confirm('¿Estás seguro de que quieres eliminar esta tarea?') ) {
                 return;
             }
-            fetch(`../wp-json/task-timer/v1/eliminar-tarea/`, {
+            fetch(taskTimerObj.ajaxurl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
+                body: new URLSearchParams({
+                    action: 'eliminar_tarea',
+                    nonce: taskTimerObj.nonce,
                     tarea_id: tareaId
                 })
             }).then(() => {

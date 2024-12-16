@@ -13,7 +13,8 @@
                  <?php
                  $projects = get_posts(array(
                      'post_type' => 'proyecto',
-                     'posts_per_page' => -1
+                     'posts_per_page' => -1,
+                     'author' => get_current_user_id()
                  ));
                 ?>
                 <select name="proyecto-id" id="proyecto-id" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -35,7 +36,8 @@
             <?php
             $tareas = get_posts(array(
                 'post_type' => 'tarea',
-                'posts_per_page' => -1
+                'posts_per_page' => -1,
+                'author' => get_current_user_id()
             ));
 
             foreach ($tareas as $tarea) :
